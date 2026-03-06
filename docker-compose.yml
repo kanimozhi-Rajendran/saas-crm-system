@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  # ── MongoDB ──────────────────────────────────────────────────
+  mongodb:
+    image: mongo:7.0
+    container_name: crm_mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: secret
+      MONGO_INITDB_DATABASE: ai_saas_crm
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - crm_net
+
+  # ── Backend API ───────────────────────────────────────────────
+  backend:
+    build: ./backend
+    container_name: crm_backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGO_URI: mongodb://admin:secret@mongodb:27017/ai_saas_crm?authSource=admin
+      JWT_SECRET: your_production_jwt_secret_change_this
+      JWT_EXPIRES_IN: 7d
+      CLIENT_URL: http://localhost:3000
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+    networks:
+      - crm_net
+
+  # ── Frontend ──────────────────────────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: crm_frontend
+    restart: unless-stopped
+    environment:
+      REACT_APP_API_URL: http://localhost:5000/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - crm_net
+
+volumes:
+  mongo_data:
+
+networks:
+  crm_net:
+    driver: bridge
