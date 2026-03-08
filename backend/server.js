@@ -1,7 +1,8 @@
 
-//  AI-SaaS-CRM-System  ·  Entry Point
+//  AI-SaaS-CRM-System V2  ·  Entry Point
 // ─────────────────────────────────────────────────────────────
 const express = require("express");
+const http = require("http");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -10,6 +11,7 @@ const dotenv = require("dotenv");
 
 const connectDB = require("./config/db");
 const { errorHandler, notFound } = require("./middleware/errorMiddleware");
+const { initializeSocket } = require("./utils/socketService");
 
 // Route imports
 const authRoutes = require("./routes/authRoutes");
@@ -18,6 +20,10 @@ const leadRoutes = require("./routes/leadRoutes");
 const dealRoutes = require("./routes/dealRoutes");
 const ticketRoutes = require("./routes/ticketRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
+const chatbotRoutes = require("./routes/chatbotRoutes");
+const activityRoutes = require("./routes/activityRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const exportRoutes = require("./routes/exportRoutes");
 
 // Load environment variables
 dotenv.config();
@@ -26,6 +32,10 @@ dotenv.config();
 connectDB();
 
 const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.io
+initializeSocket(server);
 
 // ── Security Middleware ────────────────────────────────────────
 app.use(helmet());
@@ -48,7 +58,7 @@ if (process.env.NODE_ENV === "development") app.use(morgan("dev"));
 
 // ── Health Check ───────────────────────────────────────────────
 app.get("/api/health", (req, res) =>
-  res.json({ success: true, message: "AI-SaaS-CRM API is running", timestamp: new Date() })
+  res.json({ success: true, message: "AI-SaaS-CRM API V2 is running", timestamp: new Date() })
 );
 
 // ── API Routes ─────────────────────────────────────────────────
@@ -58,6 +68,10 @@ app.use("/api/leads", leadRoutes);
 app.use("/api/deals", dealRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/chatbot", chatbotRoutes);
+app.use("/api/activity", activityRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/export", exportRoutes);
 
 // ── Error Handling ─────────────────────────────────────────────
 app.use(notFound);
@@ -65,6 +79,6 @@ app.use(errorHandler);
 
 // ── Start Server ───────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
+server.listen(PORT, () =>
+  console.log(`🚀 Server V2 running in ${process.env.NODE_ENV} mode on port ${PORT}`)
 );

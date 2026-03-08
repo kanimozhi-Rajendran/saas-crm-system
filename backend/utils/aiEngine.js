@@ -303,3 +303,106 @@ const generateRecommendations = ({ leads = [], deals = [], tickets = [], custome
 };
 
 module.exports = { calculateLeadScore, predictDealSuccess, generateRecommendations };
+
+
+// ── 4. CUSTOMER CHURN PREDICTION ──────────────────────────────
+/**
+ * Predicts customer churn risk (0-100) based on engagement and health metrics.
+ *
+ * Risk Factors:
+ *  - Recency (days since last interaction)
+ *  - Ticket stress (open tickets count)
+ *  - Engagement level (interaction frequency)
+ *  - Revenue contribution
+ *  - Deal activity
+ *
+ * @param {Object} customerData
+ * @returns {{ churnProbability: number, riskLevel: string, actions: string[], breakdown: Object }}
+ */
+const predictCustomerChurn = (customerData) => {
+  const {
+    daysSinceLastInteraction = 0,
+    totalRevenue = 0,
+    openTicketsCount = 0,
+    resolvedTicketsCount = 0,
+    dealCount = 0,
+    interactionCount = 0,
+    previousConversion = false,
+  } = customerData;
+
+  // ── Recency Score (0-40) ─────────────────────────────────────
+  // More days = higher churn risk
+  let recencyScore = 0;
+  if (daysSinceLastInteraction <= 30) recencyScore = 0;
+  else if (daysSinceLastInteraction <= 60) recencyScore = 10;
+  else if (daysSinceLastInteraction <= 90) recencyScore = 20;
+  else if (daysSinceLastInteraction <= 180) recencyScore = 30;
+  else recencyScore = 40;
+
+  // ── Ticket Stress Score (0-20) ───────────────────────────────
+  // Unresolved tickets indicate dissatisfaction
+  let ticketStressScore = 0;
+  if (openTicketsCount >= 5) ticketStressScore = 20;
+  else if (openTicketsCount >= 3) ticketStressScore = 10;
+  else if (openTicketsCount >= 1) ticketStressScore = 5;
+  else ticketStressScore = 0;
+
+  // ── Engagement Score (0-20) ──────────────────────────────────
+  // Low interaction = disengagement
+  let engagementScore = 0;
+  if (interactionCount >= 20) engagementScore = 0;
+  else if (interactionCount >= 10) engagementScore = 5;
+  else if (interactionCount >= 5) engagementScore = 10;
+  else engagementScore = 20;
+
+  // ── Revenue Score (0-15) ─────────────────────────────────────
+  // Low revenue customers are higher churn risk
+  let revenueScore = 0;
+  if (totalRevenue >= 50000) revenueScore = 0;
+  else if (totalRevenue >= 10000) revenueScore = 5;
+  else if (totalRevenue >= 1000) revenueScore = 10;
+  else revenueScore = 15;
+
+  // ── Deal Score (0-10) ────────────────────────────────────────
+  // Active deals indicate ongoing engagement
+  let dealScore = 0;
+  if (dealCount >= 3) dealScore = 0;
+  else if (dealCount >= 1) dealScore = 5;
+  else dealScore = 10;
+
+  // ── Aggregate Churn Risk ─────────────────────────────────────
+  const rawChurnRisk =
+    recencyScore + ticketStressScore + engagementScore + revenueScore + dealScore;
+  const churnProbability = Math.min(Math.max(Math.round(rawChurnRisk), 0), 100);
+
+  // ── Risk Level ───────────────────────────────────────────────
+  let riskLevel;
+  if (churnProbability <= 20) riskLevel = "Low";
+  else if (churnProbability <= 50) riskLevel = "Medium";
+  else if (churnProbability <= 75) riskLevel = "High";
+  else riskLevel = "Critical";
+
+  // ── Recommended Actions ──────────────────────────────────────
+  const actions = [];
+  if (recencyScore > 20) actions.push("Schedule immediate check-in call");
+  if (ticketStressScore > 10) actions.push("Resolve open support tickets urgently");
+  if (engagementScore > 10) actions.push("Increase touchpoint frequency");
+  if (churnProbability > 75) actions.push("Escalate to Account Manager");
+  if (dealCount === 0 && totalRevenue > 0) actions.push("Identify upsell opportunities");
+  if (actions.length === 0) actions.push("Continue regular engagement cadence");
+
+  return {
+    churnProbability,
+    riskLevel,
+    actions,
+    breakdown: {
+      recencyScore,
+      ticketStressScore,
+      engagementScore,
+      revenueScore,
+      dealScore,
+    },
+  };
+};
+
+module.exports = { calculateLeadScore, predictDealSuccess, generateRecommendations, predictCustomerChurn };

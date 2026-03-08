@@ -1,6 +1,6 @@
 const express = require("express");
 const {
-  createCustomer, getCustomers, getCustomerById, updateCustomer, deleteCustomer,
+  createCustomer, getCustomers, getCustomerById, updateCustomer, deleteCustomer, getChurnPrediction,
 } = require("../controllers/customerController");
 const { protect } = require("../middleware/authMiddleware");
 const { authorize } = require("../middleware/roleMiddleware");
@@ -11,6 +11,8 @@ router.use(protect); // All customer routes require auth
 router.route("/")
   .get(getCustomers)
   .post(createCustomer);
+
+router.get("/:id/churn-prediction", getChurnPrediction);
 
 router.route("/:id")
   .get(getCustomerById)

@@ -53,3 +53,56 @@ const deleteCustomer = async (req, res, next) => {
 };
 
 module.exports = { createCustomer, getCustomers, getCustomerById, updateCustomer, deleteCustomer };
+
+
+// ── @route  GET /api/customers/:id/churn-prediction ───────────
+const getChurnPrediction = async (req, res, next) => {
+  try {
+    const { predictCustomerChurn } = require("../utils/aiEngine");
+    const Ticket = require("../models/Ticket");
+    const Deal = require("../models/Deal");
+
+    const customer = await Customer.findById(req.params.id);
+    if (!customer) {
+      return res.status(404).json({ success: false, message: "Customer not found" });
+    }
+
+    // Calculate days since last interaction
+    const daysSinceLastInteraction = customer.updatedAt
+      ? Math.floor((Date.now() - new Date(customer.updatedAt)) / (1000 * 60 * 60 * 24))
+      : 365;
+
+    // Get ticket counts
+    const [openTicketsCount, resolvedTicketsCount, dealCount] = await Promise.all([
+      Ticket.countDocuments({ customer: customer._id, status: { $in: ["Open", "In Progress"] } }),
+      Ticket.countDocuments({ customer: customer._id, status: "Resolved" }),
+      Deal.countDocuments({ customer: customer._id }),
+    ]);
+
+    const churnData = {
+      daysSinceLastInteraction,
+      totalRevenue: customer.totalRevenue || 0,
+      openTicketsCount,
+      resolvedTicketsCount,
+      dealCount,
+      interactionCount: customer.interactionCount || 0,
+      previousConversion: customer.previousConversion || false,
+    };
+
+    const prediction = predictCustomerChurn(churnData);
+
+    res.json({
+      success: true,
+      customer: {
+        _id: customer._id,
+        name: customer.name,
+        company: customer.company,
+      },
+      churnPrediction: prediction,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { createCustomer, getCustomers, getCustomerById, updateCustomer, deleteCustomer, getChurnPrediction };
