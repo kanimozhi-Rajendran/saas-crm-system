@@ -92,11 +92,12 @@ const calculateLeadScore = (leadData) => {
  * Feature contributions:
  *  - Pipeline Stage        → 0–35 pts
  *  - Lead Score            → 0–20 pts
+ *  - Deal Value            → 0-15 pts
  *  - Budget Confirmed      → 0–15 pts
  *  - Has Champion          → 0–15 pts
- *  - Competitor Count      → 0 to -10 pts (penalty)
- *  - Stakeholder Count     → 0–10 pts
- *  - Days in Pipeline      → 0 to -5 pts (decay)
+ *  - Stakeholder Count     → 2–10 pts (2-3 optimal)
+ *  - Competitor Count      → 0 to -15 pts (penalty)
+ *  - Days in Pipeline      → 0 to -15 pts (decay)
  *
  * Passed through sigmoid-like normalization to produce 0-100 probability.
  *
@@ -116,52 +117,67 @@ const predictDealSuccess = (dealData) => {
   } = dealData;
 
   // ── Stage Weight (progress through funnel) ───────────────────
+  // Maximum 35 points
   const stageWeights = {
     Prospecting: 5,
-    Qualification: 15,
-    Proposal: 25,
-    Negotiation: 32,
+    Qualification: 10,
+    Proposal: 20,
+    Negotiation: 30,
     "Closed Won": 35,
     "Closed Lost": 0,
   };
   const stageScore = stageWeights[stage] || 5;
 
   // ── Lead Score Contribution (0–20) ───────────────────────────
+  // Proportional based on 0-100 score
   const leadScoreContribution = Math.round((leadScore / 100) * 20);
 
+  // ── Deal Value Bonus (0-15) ──────────────────────────────────
+  // High-value deals generally get more organizational focus to close
+  let valueBonus = 0;
+  if (value >= 100000) valueBonus = 15;
+  else if (value >= 50000) valueBonus = 10;
+  else if (value >= 10000) valueBonus = 5;
+  else if (value > 0) valueBonus = 2;
+
   // ── Budget Confirmed Bonus ────────────────────────────────────
+  // Critical for closing (15 points)
   const budgetScore = hasBudgetConfirmed ? 15 : 0;
 
   // ── Champion Bonus ────────────────────────────────────────────
+  // An internal advocate is a strong signal (15 points)
   const championScore = hasChampion ? 15 : 0;
 
-  // ── Competitor Penalty ────────────────────────────────────────
-  // More competitors = lower probability
-  const competitorPenalty = Math.min(competitorCount * 3, 10);
+  // ── Stakeholder Score (more stakeholders = harder to close, but validated if optimal) ─
+  // Optimal is 2-3 stakeholders (10 points). 1 is too few (5 pts). >4 bogs deals down (2 pts).
+  let stakeholderScore = 5; 
+  if (stakeholderCount >= 2 && stakeholderCount <= 3) stakeholderScore = 10;
+  else if (stakeholderCount > 3) stakeholderScore = 2;
 
-  // ── Stakeholder Score (more stakeholders = harder to close, but validated) ─
-  const stakeholderScore = stakeholderCount <= 2 ? 10 : stakeholderCount <= 4 ? 5 : 2;
+  // ── Competitor Penalty ────────────────────────────────────────
+  // More competitors = lower probability (-3 per competitor, max -15)
+  const competitorPenalty = Math.min(competitorCount * 3, 15);
 
   // ── Pipeline Decay (deal aging penalty) ──────────────────────
-  // After 60 days, deal starts losing confidence
-  const decayPenalty = daysInPipeline > 60 ? Math.min(Math.round((daysInPipeline - 60) / 20), 5) : 0;
-
-  // ── Deal Value Bonus (high-value deals get more attention) ───
-  const valueBonus = value > 50000 ? 3 : value > 10000 ? 1 : 0;
+  // After 30 days, deal starts losing confidence (-1 pt every 5 days, max -15 pts)
+  let decayPenalty = 0;
+  if (daysInPipeline > 30) {
+     decayPenalty = Math.min(Math.round((daysInPipeline - 30) / 5), 15);
+  }
 
   // ── Raw Score ────────────────────────────────────────────────
   const rawScore =
     stageScore +
     leadScoreContribution +
+    valueBonus +
     budgetScore +
     championScore +
-    stakeholderScore +
-    valueBonus -
+    stakeholderScore -
     competitorPenalty -
     decayPenalty;
 
   // ── Normalize to 0–100 using sigmoid-like function ───────────
-  // sigmoid(x) = 100 / (1 + e^(-0.08 * (x - 50)))
+  // Adjusted baseline so 50 raw score = 50% probability
   const sigmoid = (x) => Math.round(100 / (1 + Math.exp(-0.08 * (x - 50))));
   const probability = Math.min(Math.max(sigmoid(rawScore), 1), 99);
 
@@ -171,11 +187,11 @@ const predictDealSuccess = (dealData) => {
     status = "Deal closed successfully";
   } else if (stage === "Closed Lost") {
     status = "Deal lost";
-  } else if (probability >= 75) {
+  } else if (probability >= 70) {
     status = "High chance of closing";
-  } else if (probability >= 50) {
+  } else if (probability >= 40) {
     status = "Moderate chance of closing";
-  } else if (probability >= 30) {
+  } else if (probability >= 20) {
     status = "Deal at risk";
   } else {
     status = "Low probability — needs attention";
@@ -185,10 +201,11 @@ const predictDealSuccess = (dealData) => {
   const insights = [];
   if (!hasBudgetConfirmed) insights.push("Confirm budget to increase deal confidence");
   if (!hasChampion) insights.push("Identify an internal champion at the client");
-  if (competitorCount > 2) insights.push("High competition — differentiate value proposition");
-  if (daysInPipeline > 90) insights.push("Deal has been open too long — escalate");
-  if (leadScore < 40) insights.push("Lead quality is low — re-qualify the opportunity");
-  if (probability >= 75) insights.push("Strong deal — prioritize and close quickly");
+  if (competitorCount > 2) insights.push(`High competition (${competitorCount} vendors) — differentiate value proposition`);
+  if (daysInPipeline > 60) insights.push(`Deal has been open for ${daysInPipeline} days — escalate or push for decision`);
+  if (stakeholderCount === 1) insights.push("Single-threaded deal — engage more stakeholders to reduce risk");
+  if (leadScore < 40 && leadScore > 0) insights.push(`Lead score is low (${leadScore}) — verify opportunity quality`);
+  if (probability >= 70 && stage !== "Closed Won") insights.push("Strong deal — prioritize resources to close quickly");
 
   return { probability, status, insights };
 };
