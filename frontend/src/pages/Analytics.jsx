@@ -1,6 +1,3 @@
-// ─────────────────────────────────────────────────────────────
-//  Analytics Page — deep dive charts
-// ─────────────────────────────────────────────────────────────
 import { useState, useEffect } from "react";
 import { analyticsAPI } from "../utils/api";
 import {
@@ -48,7 +45,7 @@ const Analytics = () => {
         ].map((kpi, i) => (
           <div key={i} style={{ ...cardStyle, borderTop: `3px solid ${kpi.color}` }}>
             <p style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600, marginBottom: "0.5rem" }}>{kpi.label}</p>
-            <p style={{ fontSize: "1.8rem", fontWeight: 800, color: kpi.color }}>{kpi.value}</p>
+            <p style={{ fontSize: "1.8rem", fontWeight: 800, color: kpi.color, fontFamily: "'JetBrains Mono', monospace" }}>{kpi.value}</p>
           </div>
         ))}
       </div>
@@ -62,7 +59,7 @@ const Analytics = () => {
               <CartesianGrid strokeDasharray="3 3" stroke="#1e2d45" />
               <XAxis dataKey="month" stroke="#64748b" fontSize={11} />
               <YAxis stroke="#64748b" fontSize={11} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
-              <Tooltip contentStyle={{ background: "#0d1526", border: "1px solid #1e2d45", color: "#e2e8f0" }} formatter={v => [`$${v.toLocaleString()}`, "Revenue"]} />
+              <Tooltip contentStyle={{ background: "#0d1526", border: "1px solid #1e2d45", borderRadius: "8px" }} itemStyle={{ color: "#e2e8f0" }} labelStyle={{ color: "#e2e8f0" }} formatter={v => [`$${v.toLocaleString()}`, "Revenue"]} />
               <Line type="monotone" dataKey="revenue" stroke="#00d4ff" strokeWidth={2} dot={{ fill: "#00d4ff", r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
@@ -77,7 +74,7 @@ const Analytics = () => {
               <PolarAngleAxis dataKey="metric" stroke="#64748b" fontSize={11} />
               <PolarRadiusAxis stroke="#1e2d45" fontSize={9} />
               <Radar name="CRM" dataKey="value" stroke="#7c3aed" fill="#7c3aed" fillOpacity={0.3} />
-              <Tooltip contentStyle={{ background: "#0d1526", border: "1px solid #1e2d45", color: "#e2e8f0" }} />
+              <Tooltip contentStyle={{ background: "#0d1526", border: "1px solid #1e2d45", borderRadius: "8px" }} itemStyle={{ color: "#e2e8f0" }} labelStyle={{ color: "#e2e8f0" }} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
@@ -91,7 +88,7 @@ const Analytics = () => {
             <CartesianGrid strokeDasharray="3 3" stroke="#1e2d45" />
             <XAxis dataKey="stage" stroke="#64748b" fontSize={11} />
             <YAxis stroke="#64748b" fontSize={11} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
-            <Tooltip contentStyle={{ background: "#0d1526", border: "1px solid #1e2d45", color: "#e2e8f0" }} formatter={v => [`$${v.toLocaleString()}`, "Pipeline Value"]} />
+            <Tooltip contentStyle={{ background: "#0d1526", border: "1px solid #1e2d45", borderRadius: "8px" }} itemStyle={{ color: "#e2e8f0" }} labelStyle={{ color: "#e2e8f0" }} formatter={v => [`$${v.toLocaleString()}`, "Pipeline Value"]} />
             <Legend />
             <Bar dataKey="value" name="Value ($)" fill="#10b981" radius={[4,4,0,0]} />
             <Bar dataKey="count" name="Count" fill="#00d4ff" radius={[4,4,0,0]} />

@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useSocket } from "../../context/SocketContext";
 import { useTheme } from "../../context/ThemeContext";
+import { FiBell } from "react-icons/fi";
 
 const NotificationBell = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useSocket();
@@ -51,11 +52,14 @@ const NotificationBell = () => {
       padding: "0.5rem",
       borderRadius: "8px",
       transition: "background 0.2s",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
     },
     badge: {
       position: "absolute",
-      top: "2px",
-      right: "2px",
+      top: "0px",
+      right: "0px",
       background: colors.red,
       color: "#fff",
       fontSize: "0.65rem",
@@ -70,7 +74,7 @@ const NotificationBell = () => {
       top: "calc(100% + 8px)",
       right: 0,
       width: "380px",
-      maxHeight: "500px",
+      maxHeight: "320px",
       background: colors.surface,
       border: `1px solid ${colors.border}`,
       borderRadius: "12px",
@@ -115,7 +119,7 @@ const NotificationBell = () => {
         onMouseEnter={(e) => (e.currentTarget.style.background = colors.border)}
         onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
       >
-        🔔
+        <FiBell />
         {unreadCount > 0 && <span style={s.badge}>{unreadCount > 99 ? "99+" : unreadCount}</span>}
       </button>
 

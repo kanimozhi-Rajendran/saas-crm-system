@@ -45,6 +45,7 @@ export const customersAPI = {
   create: (data) => API.post("/customers", data),
   update: (id, data) => API.put(`/customers/${id}`, data),
   delete: (id) => API.delete(`/customers/${id}`),
+  getChurnPrediction: (id) => API.get(`/customers/${id}/churn-prediction`),
 };
 
 // ── Leads ─────────────────────────────────────────────────────
@@ -78,6 +79,26 @@ export const ticketsAPI = {
 export const analyticsAPI = {
   getDashboard: () => API.get("/analytics/dashboard"),
   getRecommendations: () => API.get("/analytics/recommendations"),
+  getAIInsights: () => API.get("/analytics/ai-insights"),
+};
+
+// ── Admin ─────────────────────────────────────────────────────
+export const adminAPI = {
+  getUsers: () => API.get("/admin/users"),
+  updateUser: (id, data) => API.put(`/admin/users/${id}`, data),
+  deleteUser: (id) => API.delete(`/admin/users/${id}`),
+};
+
+// ── Export ────────────────────────────────────────────────────
+export const exportAPI = {
+  exportLeadsCSV: () => API.get("/export/leads/csv", { responseType: 'blob' }),
+  exportDealsCSV: () => API.get("/export/deals/csv", { responseType: 'blob' }),
+  exportAnalyticsPDF: () => API.get("/export/analytics/pdf", { responseType: 'blob' }),
+};
+
+// ── Activity ──────────────────────────────────────────────────
+export const activityAPI = {
+  getRecent: () => API.get("/activity/recent"),
 };
 
 export default API;

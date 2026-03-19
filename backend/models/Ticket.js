@@ -22,18 +22,33 @@ const ticketSchema = new mongoose.Schema(
       enum: ["Technical", "Billing", "Feature Request", "General", "Bug"],
       default: "General",
     },
-    customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
-    assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    customer: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "Customer",
+      required: false,  // ← optional
+    },
+    assignedTo: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "User",
+      required: false,  // ← optional
+    },
+    createdBy: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "User", 
+      required: false,  // ← required: false மாத்தினேன்!
+    },
 
-    // Resolution tracking for analytics
+    // Resolution tracking
     resolvedAt: { type: Date },
     resolutionTimeHours: { type: Number, default: null },
 
     comments: [
       {
         text: { type: String, required: true },
-        author: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        author: { 
+          type: mongoose.Schema.Types.ObjectId, 
+          ref: "User" 
+        },
         createdAt: { type: Date, default: Date.now },
       },
     ],
@@ -42,13 +57,18 @@ const ticketSchema = new mongoose.Schema(
 );
 
 // ── Auto-calculate resolution time ────────────────────────────
-ticketSchema.pre("save", function (next) {
-  if (this.isModified("status") && this.status === "Resolved" && !this.resolvedAt) {
+ticketSchema.pre("save", function () {
+  if (
+    this.isModified("status") &&
+    this.status === "Resolved" &&
+    !this.resolvedAt
+  ) {
     this.resolvedAt = new Date();
     const created = new Date(this.createdAt || Date.now());
-    this.resolutionTimeHours = Math.round((this.resolvedAt - created) / (1000 * 60 * 60));
+    this.resolutionTimeHours = Math.round(
+      (this.resolvedAt - created) / (1000 * 60 * 60)
+    );
   }
-  next();
 });
 
 module.exports = mongoose.model("Ticket", ticketSchema);
